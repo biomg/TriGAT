@@ -99,40 +99,7 @@ python train.py --configs_path configs/pMTnet.yml --xhelp    # print the current
 
 The defaults above already correspond to the full TriGAT model, so a plain `python train.py` reproduces the paper setting.
 
-### Ablation variants
 
-The architecture is selected with the environment variable `GTE_VARIANT`:
-
-```bash
-GTE_VARIANT=noconv3 python train.py --configs_path configs/pMTnet.yml
-```
-
-| Value | Architecture | Used for |
-|---|---|---|
-| `full` (default) | 3-layer residual GAT + difference-enhanced edge feature | TriGAT |
-| `noconv3` | 2-layer residual GAT + difference-enhanced edge feature | ablation: w/o third GAT layer |
-| `noedgediff` | 3-layer residual GAT + plain concatenation | ablation: w/o edge difference |
-| `twolayer` | 2-layer residual GAT + plain concatenation | ResGAT backbone |
-
-The remaining ablation, w/o multi-trajectory fusion, needs no separate architecture — it is obtained by disabling the fusion at training level: `--xx seeds=1,pool=0,snapk=1,ema=0`.
-
-### Outputs
-
-Each run writes:
-
-- `results/<dataset>_0123_4.pth` — best checkpoint (path set by `save_model` in the config)
-- `results/<dataset>.csv` — test-set predictions
-- `results/<dataset>_auc_curve.png` and `results/<dataset>_auc_history.csv` — training curves
-
-## Reproducing the Figures
-
-Every figure in the paper is drawn from `exp_meanstd/raw_results.csv`, which records the metric of each individual run:
-
-```bash
-python figs_paper_v2.py                  # all six result figures
-python figs_paper_v2.py --only fig12     # a single figure
-python figs_paper_v2.py --csv other.csv --out figs_other
-```
 
 ## Data and Materials
 
