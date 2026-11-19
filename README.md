@@ -8,22 +8,6 @@ TriGAT (**Tri**-layer **G**raph **A**ttention network) predicts the binding spec
 
 On the four public benchmarks, TriGAT reaches AUC of **0.9529 / 0.9181 / 0.9274 / 0.8929** and AUPR of **0.7612 / 0.6430 / 0.6753 / 0.5326** on pMTnet / TEINet / VDJdb / McPAS.
 
-## Repository Structure
-
-```
-.
-├── train.py              # training and evaluation entry point
-├── model.py              # TriGAT and its ablation variants
-├── data_processing.py    # builds 5-fold graphs from CSV files and embeddings
-├── arg_parser.py         # command-line arguments
-├── configs/              # one YAML per benchmark dataset
-├── figs_paper_v2.py      # regenerates Figures 6, 7, 10-13 from per-run metrics
-├── exp_meanstd/
-│   └── raw_results.csv   # per-run metrics behind every table and figure
-└── requirements.txt
-```
-
-Only folds 0-3 are used for training and fold 4 for testing, matching the five-fold protocol of the paper.
 
 ## Quick Start
 
