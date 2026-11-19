@@ -1,18 +1,5 @@
 # -*- coding: utf-8 -*-
-"""TriGAT model file (variant-aware, used by train.py).
 
-The architecture is selected by the environment variable GTE_VARIANT:
-    full        (default) 3-layer residual GAT + difference-enhanced edge feature [src;dst;|src-dst|;src*dst]
-    noconv3              2-layer residual GAT + difference-enhanced edge feature   (ablation A)
-    noedgediff           3-layer residual GAT + plain concatenation [src;dst]      (ablation B)
-    twolayer             2-layer residual GAT + plain concatenation [src;dst]      (ResGAT backbone, ablation D/E)
-    nofusion             alias of "full"; fusion is disabled at the *training*
-                         level by --xx seeds=1,pool=1,snapk=1,ema=0               (ablation C)
-    resgat               alias of "twolayer"                                       (ablation E)
-
-When GTE_VARIANT is unset the behaviour is byte-for-byte identical to the
-original model.py, so every existing script keeps working.
-"""
 import os
 import torch
 import torch.nn.functional as F
