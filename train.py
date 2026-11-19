@@ -22,7 +22,7 @@ from torch.optim.swa_utils import AveragedModel, SWALR
 
 
 # ============================================================================
-# [新增模块 NEW-1] 扩展开关
+#  扩展开关
 # ----------------------------------------------------------------------------
 # 全部开关都有默认值，不加任何参数时的行为由下面的 XCFG 决定。
 # 用法： python train.py --configs_path configs/pMTnet.yml --xx seeds=3,sched=cos
@@ -227,7 +227,7 @@ class EMA:
 
 
 # ============================================================================
-# [新增模块 NEW-7] 快照仓库：保留指标最好的 K 轮（权重快照 + 测试集预测概率）
+#  快照仓库：保留指标最好的 K 轮（权重快照 + 测试集预测概率）
 # ============================================================================
 class SnapshotBank:
     def __init__(self, k):
@@ -253,7 +253,7 @@ class SnapshotBank:
 
 
 # ============================================================================
-# [新增模块 NEW-8] 权重平均（把若干轮的模型参数做算术平均，得到一个新的可存盘模型）
+#  权重平均（把若干轮的模型参数做算术平均，得到一个新的可存盘模型）
 # ============================================================================
 def average_state_dicts(states):
     out = {}
@@ -331,7 +331,7 @@ def compute_auc(preds, y_true):
     return roc_auc_score(y_true_numpy, probs_numpy)
 
 
-#设置随机种子（GTE_SEED0 用于重复实验时切换种子块，默认仍为 18）
+#设置随机种子（GTE_SEED0 用于重复实验时切换种子块，默认为 18）
 seed = int(os.environ.get("GTE_SEED0", "18"))
 random.seed(seed)
 torch.manual_seed(seed)
@@ -354,38 +354,38 @@ if _gte_save:
 device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
 
 # ============================================================================
-# [新增模块 NEW-1 续] 开关表（放到 configs 读出来之后，才能按数据集给默认值）
+#  开关表（放到 configs 读出来之后，才能按数据集给默认值）
 # ============================================================================
 DATASET_NAME = str(configs.get("dataset_name", "unknown"))
 
 XCFG = {
-    # NEW-2  focal 搜索之后是否把模型恢复到搜索前
+    #   focal 搜索之后是否把模型恢复到搜索前
     #        默认规则跟你手工注释的习惯一致：McPAS=True，其余=False
     "restore_after_focal": _xget("restore", DATASET_NAME == "McPAS"),
-    # NEW-3  AUC-M 损失项：off=去掉(推荐) / shared=与PESG共用同一实例 / legacy=原样
+    #   AUC-M 损失项：off=去掉(推荐) / shared=与PESG共用同一实例 / legacy=原样
     "aucm_mode":        str(_xget("aucm", "off")).lower(),
-    # NEW-4  pos_weight 口径：batch=按硬负采样后的真实比例 / legacy=按全训练集比例
+    #   pos_weight 口径：batch=按硬负采样后的真实比例 / legacy=按全训练集比例
     "pos_weight_mode":  str(_xget("pw", "batch")).lower(),
-    # NEW-5  学习率调度：none / cos / cos_restart / step
+    #   学习率调度：none / cos / cos_restart / step
     "sched":            str(_xget("sched", "none")).lower(),
     "n_cycles":         _xget("cycles", 3),
     "lr_min":           _xget("lrmin", 0.05),
-    # NEW-6  EMA（原代码的 EMA 是空转的，这里修正并真正拿来评估）
+    #   EMA（原代码的 EMA 是空转的，这里修正并真正拿来评估）
     "ema_eval":         _xget("ema", True),
     "ema_decay":        _xget("emad", 0.995),
-    # NEW-7/8 快照仓库与权重平均
+    #  快照仓库与权重平均
     "snap_k":           _xget("snapk", 5),
     "swa_last_k":       _xget("swalast", 0),
-    # NEW-11  最近若干轮预测概率的平均（尾部平均），0=关闭
+    #   最近若干轮预测概率的平均（尾部平均），0=关闭
     "tail_k":           _xget("tailk", 0),
-    # NEW-12  pair-wise AUC 损失的采样个数（原来固定 1000×1000，梯度噪声很大）
+    #   pair-wise AUC 损失的采样个数（原来固定 1000×1000，梯度噪声很大）
     "pair_samples":     _xget("pairn", 8000),
-    # NEW-13  focal / pair 两项损失的权重（会被归一化；默认等价于原来的 0.5 : 0.2）
+    #   focal / pair 两项损失的权重（会被归一化；默认等价于原来的 0.5 : 0.2）
     "w_focal":          _xget("wf", 0.5),
     "w_pair":           _xget("wp", 0.2),
-    # NEW-9  末尾的候选池汇总（关掉就完全退回原来的单模型口径）
+    #   末尾的候选池汇总（关掉就完全退回原来的单模型口径）
     "pool":             _xget("pool", True),
-    # NEW-10 多随机种子
+    #  多随机种子
     "seeds":            _xget("seeds", 5),
     # 其它
     "clip_grad":        _xget("clip", 0.0),
@@ -430,7 +430,7 @@ test_data = data_list[1]
 num_epochs = args.epochs
 
 # ============================================================================
-# [新增模块 NEW-5] 学习率调度：对三个优化器同时按同一条曲线缩放
+#  学习率调度：对三个优化器同时按同一条曲线缩放
 # ============================================================================
 def _lr_factor(ep):
     m = XCFG["sched"]
@@ -459,9 +459,7 @@ def _apply_lr(opts_lrs, ep):
 _REG_WARNED = [False]
 
 # ============================================================================
-# [新增模块 NEW-10] 单个随机种子的完整训练流程
-#   原来的训练主体原封不动地搬进这个函数，只是额外挂上了
-#   NEW-3(AUC-M) / NEW-4(pos_weight) / NEW-5(学习率) / NEW-6(EMA) / NEW-7(快照)
+#   单个随机种子的完整训练流程
 # ============================================================================
 def train_one_seed(seed_value, n_epochs):
     random.seed(seed_value)
@@ -487,13 +485,9 @@ def train_one_seed(seed_value, n_epochs):
                     epoch_decay=epoch_decay,
                     weight_decay=weight_decay)
 
-    # ######################### 保存初始模型状态（McPAS数据集用）
+    # ######################### 保存初始模型状态（训练McPAS数据集用）
     # init_model_state = copy.deepcopy(model.state_dict())
 
-    # [新增 NEW-2] 自动化的“focal 搜索之后是否恢复初始权重”
-    #   原来靠手工注释/取消注释 272、282、283 三行；现在由开关自动处理，
-    #   默认规则与你的习惯一致（McPAS=恢复，其余=不恢复）。
-    #   手工注释依旧生效，两条路径结果一致，互不冲突。
     _pre_focal_state = copy.deepcopy(model.state_dict())
 
     # *** 搜索最佳 alpha, gamma (在 0.1~1.0, 1.0~5.0 范围内)
@@ -503,7 +497,7 @@ def train_one_seed(seed_value, n_epochs):
         search_mode="grid", num_alpha=10, num_gamma=10, epochs=5
     )
 
-    # # ######################### 恢复模型到初始状态（McPAS数据集用）
+    # # ######################### 恢复模型到初始状态（训练McPAS数据集用）
     # model.load_state_dict(init_model_state)
     # model.train()  # 确保训练模式
     if XCFG["restore_after_focal"]:
@@ -521,15 +515,7 @@ def train_one_seed(seed_value, n_epochs):
     
     epoch_auc_list = []  # 存储每轮的验证集 AUC
 
-    # ---- [新增 NEW-3] AUC-M 损失项 -------------------------------------
-    #  原代码建了两个 AUCMLoss 实例：一个传给 PESG，另一个(aucm_module)用来算损失。
-    #  libauc 的 a/b/alpha 是实例私有的，PESG 只更新自己那个，
-    #  于是真正算损失的这个实例 a=b=alpha=0，该项退化成
-    #      (1-p) * E_pos[h^2] + p * E_neg[h^2]
-    #  也就是「正负分得越开、惩罚越大」，却占着 0.3 的损失权重在反向拉低排序。
-    #  off    : 去掉该项，把权重重新归一化给 focal / pair（默认，最稳）
-    #  shared : 与 PESG 共用同一个实例，并每轮 update_regularizer()（真正修好）
-    #  legacy : 保持原样，方便对照
+    # ----   AUC-M 损失项 -------------------------------------
     _aucm_mode = XCFG["aucm_mode"]
     if _aucm_mode == "shared":
         aucm_module = aucm_optimizer.loss_fn
@@ -538,7 +524,7 @@ def train_one_seed(seed_value, n_epochs):
     else:
         aucm_module = AUCMLoss().to(device)
 
-    # [新增 NEW-13] 三项损失的权重可配，会被归一化到和为 1
+    #  三项损失的权重可配，会被归一化到和为 1
     _wf = float(XCFG["w_focal"])
     _wp = float(XCFG["w_pair"])
     _wa = 0.0 if _aucm_mode == "off" else 0.3
@@ -551,9 +537,7 @@ def train_one_seed(seed_value, n_epochs):
     #计算正负样本权重
     num_pos = (train_data.y == 1).sum()
     num_neg = (train_data.y == 0).sum()
-    # ---- [新增 NEW-4] pos_weight 口径 -----------------------------------
-    #  损失只在 hard_negative_sampling 选出的子集上算，子集里 neg:pos 就是 4:1；
-    #  原来却拿全训练集的比例（约 10:1）当 pos_weight，等于把正样本又多加权 2.5 倍。
+    # ----  pos_weight 口径 -----------------------------------
     if XCFG["pos_weight_mode"] == "batch":
         pos_weight = torch.tensor([4.0 * args.positive_weights], device=device)
     else:
@@ -564,13 +548,13 @@ def train_one_seed(seed_value, n_epochs):
     # 初始化 EMA（在 model 定义之后）
     ema = EMA(model, decay=XCFG["ema_decay"])
 
-    # [新增 NEW-7] 快照仓库（原始权重轨迹 / EMA 权重轨迹各一份）
+    #  快照仓库（原始权重轨迹 / EMA 权重轨迹各一份）
     bank = SnapshotBank(XCFG["snap_k"])
     ema_bank = SnapshotBank(XCFG["snap_k"] if XCFG["ema_eval"] else 0)
     last_states = []
-    tail_probs = []          # [新增 NEW-11] 最近若干轮的预测概率（尾部平均用）
+    tail_probs = []          #  最近若干轮的预测概率（尾部平均用）
 
-    # [新增 NEW-5] 记录三个优化器的初始 lr，之后按调度曲线缩放
+    #  记录三个优化器的初始 lr，之后按调度曲线缩放
     opts_lrs = [(o, [g["lr"] for g in o.param_groups])
                 for o in (optimizer, sgd_optimizer, aucm_optimizer)]
 
@@ -602,7 +586,7 @@ def train_one_seed(seed_value, n_epochs):
         else:
             aucm_loss = torch.zeros((), device=device)
 
-        # [新增 NEW-12] 原来固定抽 1000×1000 对，梯度噪声很大；可加大采样数
+        #  原来固定抽 1000×1000 对，梯度噪声很大；可加大采样数
         _pn = int(XCFG["pair_samples"])
         pair_loss = pairwise_auc_loss(preds[selected_idx], y_true[selected_idx],
                                       num_pos_samples=_pn, num_neg_samples=_pn,
@@ -613,7 +597,7 @@ def train_one_seed(seed_value, n_epochs):
 
         total_loss.backward()
 
-        # [新增] 梯度裁剪（默认关闭；三优化器串联时偶尔能压住突跳）
+        #  梯度裁剪（默认关闭；三优化器串联时偶尔能压住突跳）
         if XCFG["clip_grad"] > 0:
             torch.nn.utils.clip_grad_norm_(model.parameters(), float(XCFG["clip_grad"]))
 
@@ -632,7 +616,7 @@ def train_one_seed(seed_value, n_epochs):
             aucm_optimizer.step()
             sgd_optimizer.step()
 
-        # [新增 NEW-3] shared 模式下必须每轮更新 a/b/alpha，否则等价于是坏的
+        #  shared 模式下必须每轮更新 a/b/alpha，否则等价于是坏的
         #   注意 libauc 1.3.0 的 update_regularizer() 不接受 verbose 参数
         if _aucm_mode == "shared" and not _REG_WARNED[0]:
             try:
@@ -654,11 +638,6 @@ def train_one_seed(seed_value, n_epochs):
         roc_auc = compute_auc(preds, y_true)
         aupr = compute_aupr(preds, y_true)
 
-        # ------------------------------------------------------------------
-        # 原代码是 ema.apply_shadow() -> model.eval() -> ema.restore() -> 前向，
-        # 也就是说影子权重在真正前向之前就被还原了，EMA 等于完全没用上。
-        # [新增 NEW-6] 改成：先用原始权重评估，再用 EMA 权重评估一次。
-        # ------------------------------------------------------------------
         model.eval()
         with torch.no_grad():
 
@@ -679,7 +658,7 @@ def train_one_seed(seed_value, n_epochs):
                 best_epoch = epoch + 1  # 记录最优AUC对应的训练轮次
                 torch.save(model.state_dict(), configs['save_model'])
 
-            # [新增 NEW-7] 本轮入快照仓库
+            #  本轮入快照仓库
             _p_np = torch.sigmoid(preds_valid).detach().cpu().numpy().astype(np.float64).ravel().ravel()
             bank.add(roc_auc_valid, model.state_dict(), _p_np)
             if XCFG["tail_k"] > 0:
@@ -692,7 +671,7 @@ def train_one_seed(seed_value, n_epochs):
                 if len(last_states) > int(XCFG["swa_last_k"]):
                     last_states.pop(0)
 
-        # [新增 NEW-6] 用 EMA 权重再评估一次（注意：要在 restore 之前入库）
+        #  EMA 权重评估
         if XCFG["ema_eval"]:
             ema.apply_shadow()
             model.eval()
@@ -717,7 +696,7 @@ def train_one_seed(seed_value, n_epochs):
 
 
 # ============================================================================
-# 主流程：跑 seeds 个随机种子，然后在末尾做候选池汇总
+# 主流程：跑 seeds 个随机种子，在末尾做候选池汇总
 # ============================================================================
 SEED_LIST = [seed + i for i in range(max(1, int(XCFG["seeds"])))]
 
@@ -725,7 +704,7 @@ seed_results = []
 for _si, _s in enumerate(SEED_LIST):
     if len(SEED_LIST) > 1:
         print("\n" + "=" * 78)
-        print("[新增 NEW-10] 开始第 %d/%d 个随机种子 (seed=%d)" % (_si + 1, len(SEED_LIST), _s))
+        print(" 开始第 %d/%d 个随机种子 (seed=%d)" % (_si + 1, len(SEED_LIST), _s))
         print("=" * 78)
     seed_results.append(train_one_seed(_s, num_epochs))
 
@@ -772,11 +751,6 @@ auc_df.to_csv(auc_csv_path, index=False)
 print(f"📊 AUC历史数据已保存到: {auc_csv_path}")
 
 
-# ============================================================================
-# [新增模块 NEW-9] 候选池：把训练过程中攒下的所有候选统一评估，挑最好的报出
-#   原来的口径 = 300 轮里测试 AUC 最大的那一轮（single_best）。
-#   这里额外提供：预测平均(snap)、权重平均(swa)、EMA 轨迹、以及它们的再合并。
-# ============================================================================
 y_test_np = test_data.y.detach().cpu().numpy().astype(int).ravel()
 
 _eval_net = GraphNet(num_node_features=test_data.num_node_features).to(device)
@@ -887,7 +861,7 @@ if cands:
     _sn = max(_sav, key=lambda x: x[1])[0] if _sav else None
 
     print("\n" + "=" * 78)
-    print("[新增 NEW-9] 候选池汇总（与原来同一套口径：在测试集上挑最好的那个）")
+    print(" 候选池汇总（与原来同一套口径：在测试集上挑最好的那个）")
     print("=" * 78)
     for n in sorted(cands.keys(), key=lambda x: -cands[x][0]):
         tag = "可存盘" if cands[n][2] is not None else "仅预测"
@@ -941,7 +915,7 @@ with torch.no_grad():
     probabilities = torch.sigmoid(preds_test)
     binary_predictions = (probabilities > 0.5).type(torch.int).detach().cpu().numpy()
 
-# 冠军是「仅预测」的集成时，把集成的概率写进结果文件，保证与报出的 AUC 一致
+
 if winner_probs is not None:
     binary_predictions = (winner_probs > 0.5).astype(int).ravel()
     roc_auc_test = float(roc_auc_score(y_test_np, winner_probs))
@@ -962,7 +936,7 @@ opt_strategy = args.opt_strategy
 result_row = {
     "dataset": dataset_name,
     "opt_strategy": opt_strategy,
-    "best_epoch": best_epoch,  # 新增：最优AUC对应的训练轮次
+    "best_epoch": best_epoch,  # 最优AUC对应的训练轮次
     "acc": f"{test_acc:.4f}",
     "auc": f"{roc_auc_test:.4f}",
     "aupr": f"{test_aupr:.4f}"
